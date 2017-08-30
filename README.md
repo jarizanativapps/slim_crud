@@ -26,4 +26,5 @@ $ GET /api/test/{id}
 $ POST /api/test/add
 $ PUT /api/test/update/{id}
 $ DELETE /api/test/delete/{id}
+$ UPLOAD /upload
 ```

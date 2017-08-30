@@ -13,7 +13,7 @@ $app->get('/hello/{name}', function (Request $request, Response $response) {
     return $response;
 });
 
-// Customer Routes
+// test Routes
 require 'src/routes/test.php';
 
 $app->run();

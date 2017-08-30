@@ -2,7 +2,15 @@
 use \Psr\Http\Message\ServerRequestInterface as Request;
 use \Psr\Http\Message\ResponseInterface as Response;
 
+use Slim\Http\UploadedFile;
 $app = new \Slim\App;
+// Get container
+$container = $app->getContainer();
+$container['upload_directory'] = __DIR__ . '/files';
+// Register component on container
+$container['view'] = function ($container) {
+    return new \Slim\Views\PhpRenderer('public/');
+};
 
 $app->options('/{routes:.+}', function ($request, $response, $args) {
     return $response;
@@ -15,7 +23,10 @@ $app->add(function ($req, $res, $next) {
             ->withHeader('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type, Accept, Origin, Authorization')
             ->withHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
 });
-
+// Reder form upload
+$app->get('/', function ($request, $response, $args) {
+    return $this->view->render($response, 'uploads.phtml');
+})->setName('uploads');
 // Get All test
 $app->get('/api/test', function(Request $request, Response $response){
     $sql = "SELECT * FROM test";
@@ -144,3 +155,37 @@ $app->delete('/api/test/delete/{id}', function(Request $request, Response $respo
         echo '{"error": {"text": '.$e->getMessage().'}';
     }
 });
+
+//upload files
+$app->post('/upload', function(Request $request, Response $response) {
+    $directory = $this->get('upload_directory');
+
+    $uploadedFiles = $request->getUploadedFiles();
+
+    // handle single input with single file upload
+    $uploadedFile = $uploadedFiles['newfile'];
+    if ($uploadedFile->getError() === UPLOAD_ERR_OK) {
+        $filename = moveUploadedFile($directory, $uploadedFile);
+        $response->write('uploaded ' . $filename . '<br/>');
+    }
+   
+});
+
+/**
+ * Moves the uploaded file to the upload directory and assigns it a unique name
+ * to avoid overwriting an existing uploaded file.
+ *
+ * @param string $directory directory to which the file is moved
+ * @param UploadedFile $uploaded file uploaded file to move
+ * @return string filename of moved file
+ */
+function moveUploadedFile($directory, UploadedFile $uploadedFile)
+{
+    $extension = pathinfo($uploadedFile->getClientFilename(), PATHINFO_EXTENSION);
+    $basename = bin2hex(random_bytes(8)); // see http://php.net/manual/en/function.random-bytes.php
+    $filename = sprintf('%s.%0.8s', $basename, $extension);
+
+    $uploadedFile->moveTo($directory . DIRECTORY_SEPARATOR . $filename);
+
+    return $filename;
+}
